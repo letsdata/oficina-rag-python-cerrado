@@ -20,7 +20,7 @@ import os
 from dotenv import load_dotenv
 from create_embeddings import get_embeddings
 #from rag import generate_response_llm
-from rag import generate_response_openai
+from rag import DEFAULT_GREETING_MESSAGE, generate_flow_response
 
 # Configurar ChromaDB
 # Especifique o diretório de persistência
@@ -47,7 +47,7 @@ async def iniciar_bot(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         context (ContextTypes.DEFAULT_TYPE): Objeto Context do Telegram
     """
     await update.message.reply_text(
-        "Olá! Eu sou o Bot do Let's Read! Bem-vindos à Python Cerrado + Plone Conference! O que deseja saber sobre nossa loja?"
+        "Olá! Eu sou o Bot do Let's Read! Bem-vindos ao ACKIT Camp! O que deseja saber sobre nossa loja?"
     )
 
 
@@ -68,15 +68,23 @@ async def tratar_mensagem(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         resposta = "Desculpe, não encontrei uma resposta para sua pergunta."
 
-    # Opcional: Gerar uma resposta adicional com RAG
-    # resposta_rag = generate_response_llm(user_message)
-    # resposta_final = f"{resposta}\n\n{resposta_rag}"
-    
-    #resposta_openai = generate_response_openai(user_message)
+    flow_messages = generate_flow_response(user_message, resposta)
+    greeted = context.user_data.get("greeted", False)
+    greeting_sent = False
 
-    # Para simplificar, vamos usar apenas a resposta do ChromaDB
-    await update.message.reply_text(resposta)
-    #await update.message.reply_text(resposta_openai)
+    if not flow_messages:
+        await update.message.reply_text(resposta)
+        return
+
+    for message in flow_messages:
+        if greeted and message.strip() == DEFAULT_GREETING_MESSAGE:
+            continue
+        await update.message.reply_text(message)
+        if message.strip() == DEFAULT_GREETING_MESSAGE:
+            greeting_sent = True
+
+    if greeting_sent:
+        context.user_data["greeted"] = True
 
 def main():
     load_dotenv()

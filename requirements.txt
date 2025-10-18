@@ -6,3 +6,5 @@ ollama
 python-dotenv
 openai
 langchain-openai
+langchain-google-genai
+langgraph
